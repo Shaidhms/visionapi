@@ -526,6 +526,8 @@ export default function PestDetector() {
         body: JSON.stringify({
           model: "claude-sonnet-4-20250514",
           max_tokens: 4096,
+          _mode: mode.label,
+          _tab: "pest",
           messages: [{
             role: "user",
             content: [

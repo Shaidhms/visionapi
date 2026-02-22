@@ -1,6 +1,7 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import PestDetector from "./PestDetector";
 import FeaturesPage from "./FeaturesPage";
+import AdminPanel from "./AdminPanel";
 
 const TABS = [
   { id: "features", label: "Features", icon: "✦", color: "#a5b4fc" },
@@ -86,6 +87,8 @@ function VisionAnalyzer() {
         body: JSON.stringify({
           model: "claude-sonnet-4-20250514",
           max_tokens: 1000,
+          _mode: mode.label,
+          _tab: "vision",
           messages: [{
             role: "user",
             content: [
@@ -320,6 +323,31 @@ function VisionAnalyzer() {
 
 export default function App() {
   const [activeTab, setActiveTab] = useState("features");
+  const [adminUnlocked, setAdminUnlocked] = useState(false);
+  const shiftCountRef = useRef(0);
+  const shiftTimerRef = useRef(null);
+
+  // Secret: press Shift 5 times quickly to unlock admin tab
+  useEffect(() => {
+    const handler = (e) => {
+      if (e.key === "Shift") {
+        shiftCountRef.current++;
+        clearTimeout(shiftTimerRef.current);
+        shiftTimerRef.current = setTimeout(() => { shiftCountRef.current = 0; }, 1500);
+        if (shiftCountRef.current >= 5) {
+          setAdminUnlocked((prev) => !prev);
+          shiftCountRef.current = 0;
+          if (!adminUnlocked) setActiveTab("admin");
+        }
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [adminUnlocked]);
+
+  const visibleTabs = adminUnlocked
+    ? [...TABS, { id: "admin", label: "Admin", icon: "\u{1F512}", color: "#4ade80" }]
+    : TABS;
 
   return (
     <div style={{
@@ -346,7 +374,7 @@ export default function App() {
           background: "rgba(255,255,255,0.03)", borderRadius: 14, padding: 4,
           border: "1px solid rgba(255,255,255,0.06)", maxWidth: 560, margin: "0 auto 32px",
         }}>
-          {TABS.map((tab) => (
+          {visibleTabs.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
@@ -372,6 +400,7 @@ export default function App() {
         {activeTab === "features" && <FeaturesPage onTryApp={(tab) => setActiveTab(tab)} />}
         {activeTab === "vision" && <VisionAnalyzer />}
         {activeTab === "pest" && <PestDetector />}
+        {activeTab === "admin" && adminUnlocked && <AdminPanel />}
 
         {/* Spinner keyframes */}
         <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
